@@ -1,11 +1,5 @@
-
-
-#include <sstream>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "../librmg/source/librmg.hpp"
-
-rmg::sMap map;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -13,44 +7,50 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    //MainWindow::ui->textEdit_mapView->setTextInteractionFlags(QFlags<NoTextInteraction>);
-
-    map.generationAlgorithm = RMG_GEN_C1;
-    map.connectivityAlgorithm = RMG_PATH_ND;
-    map.roomShape = RMG_SQUARE;
-    map.w = 100;
-    map.h = 100;
-    map.density = 60;
-    map.pass = 4;
-    map.directionBias = RMG_EAST;
-    map.directionBiasStrength = 6;
-    rmg::prefabFind(map);
+    map.data.generator         = eGenerator::generatorC1;
+    map.data.connect_algorithm = eConnectAlgorithm::connectND;
+    map.data.room_shape = eRoomShape::roomShapeSquare;
+    map.data.tile_x = 130;
+    map.data.tile_y = 60;
+    map.data.density = 60;
+    map.data.maxItterations = 4;
+    map.data.direction_bias = eDirection::directionEast;
+    map.data.direction_biasStrength = 6;
+    map.init();
 }
 
 MainWindow::~MainWindow()
 {
-    rmg::mapFree(map);
+    map.free();
     delete ui;
 }
 
-void MainWindow::on_pushButton_released()
+void MainWindow::on_comboBox_generation_algorithm_currentIndexChanged(int index)
+{
+    map.data.generator = static_cast<eGenerator>(index);
+    std::cout << "index: " << index << std::endl;
+}
+
+void MainWindow::on_pushButton_generate_released()
 {
     std::stringstream tempStream;
-    map.seed = 0;
-    rmg::mapGen(map);
+    map.data.seed = 0;
+    map.generate();
     MainWindow::ui->textEdit_mapView->clear();
-     for (uint32_t i = 0; i < map.tileCount; i++)
+     for (uint32_t i = 0; i < map.data.tile_count; i++)
      {
-         switch (map.tile[i].b)
+         switch (map.data.tile[i].base)
          {
-             case RMG_BASE_WALL:
+             case eBase::baseWall:
                 tempStream << "<font color=#003300>";
              break;
-             case RMG_BASE_LIQUID:
+             case eBase::baseLiquid:
                  tempStream << "<font color=#000066>";
              break;
-             case RMG_BASE_FLOOR:
-                 switch (map.tile[i].o)
+             case eBase::baseFloor:
+                 tempStream << "<font color=#D8F8D8>";
+             /*
+                 switch (map.data.tile[i].objectID)
                  {
                      case RMG_OBJECT_NONE:
                         tempStream << "<font color=#D8F8D8>";
@@ -59,21 +59,16 @@ void MainWindow::on_pushButton_released()
                         tempStream << "<font color=#FF0000>";
                      break;
                  }
+             */
              break;
              default:
                  tempStream << "<font color=#FF0000>";
              break;
          }
-         tempStream << "&#9632;" << "   ";
+         tempStream << "&#9608;" << "";
          tempStream << "</font>";
-         if (i < (map.tileCount - (map.w / 2)))
-            if ((i % map.w) == (map.w-1)) tempStream << "<br>";
+         if (i < (map.data.tile_count - (map.data.tile_x / 2)))
+            if ((i % map.data.tile_x) == (map.data.tile_x-1)) tempStream << "<br>";
      }
      MainWindow::ui->textEdit_mapView->insertHtml(tempStream.str().c_str());
-
-}
-
-void MainWindow::on_comboBox_algorithm_currentIndexChanged(int index)
-{
-    map.generationAlgorithm = index;
 }
